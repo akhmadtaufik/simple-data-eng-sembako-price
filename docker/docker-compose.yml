@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: foodprice_postgres
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../sql/create_tables.sql:/docker-entrypoint-initdb.d/01_create_tables.sql
+      - ../sql/seed_dim_dates.sql:/docker-entrypoint-initdb.d/02_seed_dim_dates.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
