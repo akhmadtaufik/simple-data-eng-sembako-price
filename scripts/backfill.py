@@ -25,7 +25,7 @@ from load import load_data
 ROOT_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = ROOT_DIR / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
-LOG_FILE = LOGS_DIR / "backfill_2022.log"
+LOG_FILE = LOGS_DIR / "backfill_2025.log"
 
 logger = logging.getLogger("backfill")
 logger.setLevel(logging.INFO)
@@ -59,10 +59,10 @@ USER_AGENTS = [
 ]
 
 
-def get_2022_fridays() -> list[date]:
-    """Generate a list of dates for every Friday in 2022."""
-    start_date = date(2022, 1, 7)  # First Friday of 2022
-    end_date = date(2022, 12, 30)  # Last Friday of 2022
+def get_2025_fridays() -> list[date]:
+    """Generate a list of dates for every Friday in 2025."""
+    start_date = date(2025, 1, 3)  # First Friday of 2025
+    end_date = date(2025, 12, 26)  # Last Friday of 2025
 
     fridays = []
     current = start_date
@@ -77,9 +77,9 @@ def get_2022_fridays() -> list[date]:
 # Execution Logic
 # ---------------------------------------------------------------------------
 def run_backfill():
-    fridays = get_2022_fridays()
+    fridays = get_2025_fridays()
     total_dates = len(fridays)
-    logger.info(f"Starting backfill for {total_dates} Fridays in 2022.")
+    logger.info(f"Starting backfill for {total_dates} Fridays in 2025.")
 
     session = requests.Session()
 
@@ -145,7 +145,7 @@ def run_backfill():
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("Initializing 2022 Backfill Pipeline (Weekly Friday Jump)")
+    logger.info("Initializing 2025 Backfill Pipeline (Weekly Friday Jump)")
     logger.info("=" * 60)
 
     try:
