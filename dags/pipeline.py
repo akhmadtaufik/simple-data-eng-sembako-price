@@ -270,6 +270,33 @@ class LoadTask(luigi.Task):
 
 
 # ===================================================================
+# TASK 4: DailyPipelineWrapper
+# ===================================================================
+class DailyPipelineWrapper(luigi.WrapperTask):
+    """
+    Wrapper task to orchestrate the pipeline for ALL 7 targeted 
+    provinces and 21 commodities automatically.
+    """
+
+    run_date = luigi.Parameter(default=datetime.now().strftime("%Y%m%d"))
+
+    def requires(self):
+        PROVINCES = [11, 12, 13, 14, 15, 16, 17]
+        COMMODITIES = list(range(1, 22))
+        PRICE_TYPES = [1, 2, 3, 4]
+
+        for prov_id in PROVINCES:
+            for com_id in COMMODITIES:
+                for price_type_id in PRICE_TYPES:
+                    yield LoadTask(
+                        run_date=self.run_date,
+                        prov_id=prov_id,
+                        com_id=com_id,
+                        price_type_id=price_type_id
+                    )
+
+
+# ===================================================================
 # Entry Point
 # ===================================================================
 if __name__ == "__main__":
