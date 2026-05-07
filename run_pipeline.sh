@@ -47,11 +47,12 @@ echo "[INFO] Run date: ${RUN_DATE}"
 # ----------------------------------------------------------
 # Execute the Luigi pipeline
 # ----------------------------------------------------------
-# Running LoadTask triggers the full chain:
-#   LoadTask → requires TransformTask → requires ExtractTask
+# Running DailyPipelineWrapper triggers the full chain for all combinations:
+#   DailyPipelineWrapper → yields multiple LoadTask
 echo "[INFO] Starting Luigi pipeline..."
-python "${DAG_FILE}" LoadTask \
+python "${DAG_FILE}" DailyPipelineWrapper \
     --run-date "${RUN_DATE}" \
+    --workers 4 \
     --local-scheduler \
     2>&1 | tee -a "${LOG_DIR}/pipeline_cron.log"
 
