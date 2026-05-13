@@ -52,7 +52,7 @@ echo "[INFO] Run date: ${RUN_DATE}"
 echo "[INFO] Starting Luigi pipeline..."
 python "${DAG_FILE}" DailyPipelineWrapper \
     --run-date "${RUN_DATE}" \
-    --workers 4 \
+    --workers 2 \
     --local-scheduler \
     2>&1 | tee -a "${LOG_DIR}/pipeline_cron.log"
 
