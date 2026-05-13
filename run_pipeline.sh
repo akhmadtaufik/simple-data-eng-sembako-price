@@ -70,3 +70,23 @@ fi
 echo "=============================================="
 echo "  Pipeline finished at $(date '+%Y-%m-%d %H:%M:%S')"
 echo "=============================================="
+
+
+# ===================================================================
+# Housekeeping: Clean up intermediate files older than 7 days
+# ===================================================================
+echo "[INFO] Menjalankan pembersihan file data lama..."
+
+# Definisikan path folder data Anda
+DATA_DIR="/home/nulltribe/MEGAsync/Project/upgrade-skills/foodprice-pipeline/data"
+
+# Hapus file raw JSON yang lebih tua dari 7 hari
+find "$DATA_DIR" -type f -name "raw_*.json" -mtime +7 -delete
+
+# Hapus file clean CSV yang lebih tua dari 7 hari
+find "$DATA_DIR" -type f -name "clean_*.csv" -mtime +7 -delete
+
+# Hapus file marker sukses yang lebih tua dari 7 hari
+find "$DATA_DIR" -type f -name "_SUCCESS_load_*.txt" -mtime +7 -delete
+
+echo "[OK] Pembersihan selesai."
