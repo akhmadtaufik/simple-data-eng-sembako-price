@@ -9,6 +9,7 @@ API URLs are loaded from the project .env file using python-dotenv.
 
 import os
 import logging
+import random
 from pathlib import Path
 
 import requests
@@ -45,6 +46,15 @@ BI_API_DETAIL_GRID = os.getenv("BI_API_DETAIL_GRID")
 if not BI_API_DETAIL_GRID:
     raise ValueError("BI_API_DETAIL_GRID environment variable is not set")
 REQUEST_TIMEOUT_SECONDS = 30
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -84,12 +94,17 @@ def fetch_food_prices(url: str | None = None, params: dict | None = None, sessio
     if url is None:
         url = BI_API_DETAIL_GRID
 
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    }
+
     logger.info("Fetching data from %s (params=%s)", url, params)
 
     if session:
-        response = session.get(url, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+        response = session.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
     else:
-        response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+        response = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
 
     # Raise HTTPError for 4xx/5xx responses so tenacity can retry on them
     response.raise_for_status()
