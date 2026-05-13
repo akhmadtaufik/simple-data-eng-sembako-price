@@ -14,6 +14,8 @@ import os
 import sys
 import json
 import logging
+import random
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -46,22 +48,6 @@ logger = logging.getLogger("pipeline")
 # ---------------------------------------------------------------------------
 DATA_DIR = PROJECT_ROOT / "data"
 DATA_DIR.mkdir(exist_ok=True)
-
-# ---------------------------------------------------------------------------
-# Marker file naming convention
-# ---------------------------------------------------------------------------
-EMPTY_MARKER_PREFIX = "_SUCCESS_empty_data_"
-
-
-def _empty_marker_path(run_date: str) -> Path:
-    """Return the path for the empty-data success marker file."""
-    return DATA_DIR / f"{EMPTY_MARKER_PREFIX}{run_date}.txt"
-
-
-def _is_empty_run(run_date: str) -> bool:
-    """Check if this run was marked as empty by ExtractTask."""
-    return _empty_marker_path(run_date).exists()
-
 
 # ===================================================================
 # TASK 1: ExtractTask
@@ -98,24 +84,23 @@ class ExtractTask(luigi.Task):
 
         logger.info("ExtractTask: Fetching data for %s", date_str)
 
-        try:
-            raw_json = fetch_food_prices(params=params)
-        except Exception as e:
-            logger.error("ExtractTask: Extraction failed: %s", e)
-            raw_json = {}
+        max_retries = 3
+        raw_json = {}
+        for attempt in range(1, max_retries + 1):
+            try:
+                raw_json = fetch_food_prices(params=params)
+                if raw_json:
+                    time.sleep(random.uniform(1.0, 3.0))
+                break
+            except Exception as e:
+                logger.warning("ExtractTask: Extraction failed (Attempt %d/%d): %s", attempt, max_retries, e)
+                if attempt < max_retries:
+                    time.sleep(60)
+                else:
+                    logger.error("ExtractTask: Max retries reached for %s", date_str)
 
         if not raw_json:
-            # ----- Empty data: create success marker -----
-            marker = _empty_marker_path(str(self.run_date))
-            marker.write_text(
-                f"Empty data for {date_str}. "
-                f"Likely a holiday or non-reporting day.\n"
-                f"Timestamp: {datetime.now().isoformat()}\n"
-            )
-            logger.warning(
-                "ExtractTask: Empty data. Marker created at %s", marker
-            )
-            # Still write an empty JSON so output() target exists
+            logger.warning("ExtractTask: Empty data or failed extraction. Writing empty JSON.")
             with self.output().open("w") as f:
                 json.dump({}, f)
         else:
@@ -153,16 +138,6 @@ class TransformTask(luigi.Task):
         return luigi.LocalTarget(str(DATA_DIR / f"clean_{self.run_date}.csv"))
 
     def run(self):
-        # ----- Check for empty marker -----
-        if _is_empty_run(str(self.run_date)):
-            logger.info(
-                "TransformTask: Skipping — empty data marker exists for %s.",
-                self.run_date,
-            )
-            with self.output().open("w") as f:
-                f.write("")  # Empty file so target exists
-            return
-
         # Read raw JSON from ExtractTask output
         with self.input().open("r") as f:
             raw_json = json.load(f)
@@ -225,23 +200,12 @@ class LoadTask(luigi.Task):
         )
 
     def run(self):
-        # ----- Check for empty marker -----
-        if _is_empty_run(str(self.run_date)):
-            logger.info(
-                "LoadTask: Skipping — empty data marker exists for %s.",
-                self.run_date,
-            )
-            with self.output().open("w") as f:
-                f.write(
-                    f"Skipped: No data to load for {self.run_date} "
-                    f"(empty API response).\n"
-                    f"Timestamp: {datetime.now().isoformat()}\n"
-                )
-            return
-
         # Read clean CSV from TransformTask output
         with self.input().open("r") as f:
-            df = pd.read_csv(f)
+            try:
+                df = pd.read_csv(f)
+            except pd.errors.EmptyDataError:
+                df = pd.DataFrame()
 
         if df.empty:
             logger.warning("LoadTask: Clean CSV is empty. Nothing to load.")
