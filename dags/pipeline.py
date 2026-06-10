@@ -32,6 +32,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from extract import fetch_food_prices   # noqa: E402
 from transform import transform_data    # noqa: E402
 from load import load_data              # noqa: E402
+import geocode_new_markets              # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -234,12 +235,12 @@ class LoadTask(luigi.Task):
 
 
 # ===================================================================
-# TASK 4: DailyPipelineWrapper
+# TASK 4: GeocodeNewMarketsTask
 # ===================================================================
-class DailyPipelineWrapper(luigi.WrapperTask):
+class GeocodeNewMarketsTask(luigi.Task):
     """
-    Wrapper task to orchestrate the pipeline for ALL 7 targeted 
-    provinces and 21 commodities automatically.
+    Automated Geocoding for any new markets that were auto-registered
+    with NULL coordinates during the LoadTask.
     """
 
     run_date = luigi.Parameter(default=datetime.now().strftime("%Y%m%d"))
@@ -258,6 +259,42 @@ class DailyPipelineWrapper(luigi.WrapperTask):
                         com_id=com_id,
                         price_type_id=price_type_id
                     )
+
+    def output(self):
+        return luigi.LocalTarget(
+            str(DATA_DIR / f"_SUCCESS_geocode_{self.run_date}.txt")
+        )
+
+    def run(self):
+        logger.info("GeocodeNewMarketsTask: Starting automated geocoding.")
+        
+        try:
+            geocode_new_markets.main()
+        except Exception as e:
+            logger.error("GeocodeNewMarketsTask: Failed - %s", e)
+            raise
+
+        # Write success marker
+        with self.output().open("w") as f:
+            f.write(
+                f"Success: Geocoding completed for {self.run_date}.\n"
+                f"Timestamp: {datetime.now().isoformat()}\n"
+            )
+
+
+# ===================================================================
+# TASK 5: DailyPipelineWrapper
+# ===================================================================
+class DailyPipelineWrapper(luigi.WrapperTask):
+    """
+    Wrapper task to orchestrate the pipeline for ALL 7 targeted 
+    provinces and 21 commodities automatically, and geocode new markets.
+    """
+
+    run_date = luigi.Parameter(default=datetime.now().strftime("%Y%m%d"))
+
+    def requires(self):
+        yield GeocodeNewMarketsTask(run_date=self.run_date)
 
 
 # ===================================================================
