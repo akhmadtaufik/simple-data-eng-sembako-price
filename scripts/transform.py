@@ -172,6 +172,11 @@ def transform_data(raw_json: dict, commodity_id: int) -> pd.DataFrame:
     df_melted.loc[df_melted["market_name"].str.contains("Modern", case=False, na=False), "market_type_id"] = 2
     df_melted.loc[df_melted["market_name"].str.contains("Besar", case=False, na=False), "market_type_id"] = 3
 
+    # Adjust market_id to prevent collision with Traditional markets
+    # This matches the seeding logic in seed_dimensions.py
+    df_melted.loc[df_melted["market_type_id"] == 2, "market_id"] += 2000
+    df_melted.loc[df_melted["market_type_id"] == 3, "market_id"] += 3000
+
     # ------------------------------------------------------------------
     # Step 5: Final Output — select and order columns
     # ------------------------------------------------------------------
