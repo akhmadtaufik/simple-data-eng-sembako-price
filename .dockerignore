@@ -1,0 +1,111 @@
+# ==============================================================
+# Food Price ETL Pipeline - .dockerignore
+# ==============================================================
+
+# --------------------------------------------------------------
+# Version Control & CI/CD
+# --------------------------------------------------------------
+.git
+.gitignore
+.gitattributes
+.github
+
+# --------------------------------------------------------------
+# Secrets, Environment & Credentials (CRITICAL)
+# --------------------------------------------------------------
+.env
+*.env
+.env.*
+.env.local
+.env.*.local
+*.pem
+*.key
+*.pkcs12
+*.pfx
+*.p12
+*.crt
+*.cer
+*.der
+id_rsa
+id_rsa.pub
+id_dsa
+id_ed25519
+id_ecdsa
+*.id_rsa
+*credential*.json
+*credentials*.json
+*secret*.json
+service-account*.json
+gcp-key*.json
+google-credentials*.json
+.aws
+credentials.csv
+*token*.json
+*token*.txt
+token.pickle
+*.jwt
+.netrc
+.npmrc
+.pypirc
+
+# --------------------------------------------------------------
+# Python & Virtual Environments
+# --------------------------------------------------------------
+venv
+.venv
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# --------------------------------------------------------------
+# Intermediate Data, Logs & Backups
+# --------------------------------------------------------------
+data
+tmp
+temp
+logs
+*.log
+_SUCCESS_*.txt
+*.pid
+luigi-state.pickle
+backups
+*.sql.gz
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
+pg_data
+.docker
+docker_pgdata
+
+# --------------------------------------------------------------
+# Documentation & Notes
+# --------------------------------------------------------------
+README.md
+claude.md
+*.md
+Harga Pangan API.txt
+
+# --------------------------------------------------------------
+# OS & IDE Settings
+# --------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+.vscode
+.idea
+*.iml
