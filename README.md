@@ -20,10 +20,12 @@ This repository prioritizes idempotency, fault tolerance, and spatial enrichment
 
 ```text
 foodprice-pipeline/
+├── backups/                        # Local compressed snapshot archives (*.sql.gz)
 ├── dags/
 │   └── pipeline.py                 # Central Luigi orchestration workflow and dependency graphs
 ├── docker/
 │   └── docker-compose.yml          # Local PostgreSQL cluster and volume configuration
+├── logs/                           # Automated ETL and database backup execution logs
 ├── scripts/
 │   ├── extract.py                  # API ingestion and robust HTTP client logic
 │   ├── transform.py                # Pandas-based cleaning, unpivoting, and type coercion
@@ -35,6 +37,7 @@ foodprice-pipeline/
 │   └── 02_seed_dimensions.sql      # Initial master data seeding scripts
 ├── setup.sh                        # Automated environment initialization and database bootstrapping
 ├── run_pipeline.sh                 # Cron-friendly shell entrypoint for daily pipeline execution
+├── backup_db.sh                    # Automated PostgreSQL Docker backup & recovery CLI manager
 ├── Pipfile                         # Pipenv dependency declarations
 └── Pipfile.lock                    # Deterministic dependency resolution tree
 ```
@@ -86,6 +89,16 @@ To guarantee enterprise-grade reliability and respect API limits, the ingestion 
 * Docker & Docker Compose
 * Pipenv (Virtual Environment Manager)
 
+### Configuration
+Create a `.env` file in the root directory (refer to `.env.example` if available):
+```env
+POSTGRES_USER=your_db_user
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=foodprice_dw
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5434
+```
+
 ### Initialization
 
 We provide a zero-touch bootstrap script to establish the environment:
@@ -104,18 +117,18 @@ bash setup.sh
 
 ## 7. Production Operations & Automation
 
-### Manual Execution
+### Manual Pipeline Execution
 To trigger the pipeline for a specific historical date (e.g., for ad-hoc patches):
 ```bash
 pipenv run python dags/pipeline.py LoadTask --date 2026-06-01 --local-scheduler
 ```
 
-### Automated Scheduling
-The pipeline is designed to run asynchronously daily. Below is the recommended Crontab configuration to execute the pipeline at **17:00 WIB** (Post-market closure):
+### Automated Scheduling via Crontab
+The pipeline is designed to run asynchronously daily. Below is the standard Crontab configuration to execute the pipeline at **15:00 WIB**:
 
 ```crontab
-# Run daily at 17:00 local server time
-0 17 * * * /path/to/foodprice-pipeline/run_pipeline.sh >> /var/log/foodprice_etl.log 2>&1
+# Run daily ETL pipeline at 15:00 WIB
+0 15 * * * /path/to/foodprice-pipeline/run_pipeline.sh >> /path/to/foodprice-pipeline/logs/pipeline_cron.log 2>&1
 ```
 
 ### Automatic Housekeeping
@@ -129,3 +142,39 @@ pipenv run python scripts/backfill.py --start-date 2026-01-01 --end-date 2026-06
 This script implements a **"Weekly Friday Jump"** strategy, requesting chunked historical windows to bypass strict API pagination limits and rebuild the past robustly.
 
 ---
+
+## 8. Database Backup & Disaster Recovery
+
+The project includes an automated, production-ready backup and disaster recovery manager via [`backup_db.sh`](backup_db.sh). This utility interfaces directly with the containerized PostgreSQL database to create compressed, timestamped snapshots and manage rolling retention.
+
+### 🛡️ Core Mechanics & Architecture
+* **Direct Stream Compression**: Executes `pg_dump --clean --if-exists` inside the Docker container and streams the output directly through `gzip`, producing compact `.sql.gz` snapshot archives in `backups/` without staging uncompressed SQL files to disk.
+* **Rolling 30-Day Retention**: Automated housekeeping policy that safely removes snapshot archives older than **30 days** (`-mtime +30`), ensuring predictable storage consumption.
+* **Pre-Flight Health Checks**: Verifies container availability and database responsiveness via `pg_isready` before executing any backup or restore commands.
+* **Zero Credential Hardcoding**: Credentials and database settings are injected dynamically from `.env` at runtime.
+
+### 💻 CLI Manager Usage
+
+| Command | Syntax | Description |
+| :--- | :--- | :--- |
+| **Status Monitor** | `./backup_db.sh status` | Inspects container health, database details, backup count, and latest snapshot sizes. |
+| **Manual Backup** | `./backup_db.sh backup` | Generates a single timestamped `.sql.gz` snapshot immediately. |
+| **Restore Database** | `./backup_db.sh restore <file.sql.gz>` | Restores the database with interactive confirmation safety guards. |
+| **Retention Purge** | `./backup_db.sh cleanup` | Scans and deletes backup files older than 30 days. |
+| **Automated Mode** | `./backup_db.sh auto-backup` | Runs a backup snapshot followed by 30-day retention cleanup and logging. |
+| **Cron Helper** | `./backup_db.sh cron` | Displays exact Crontab syntax and installation instructions. |
+
+### ⏰ Scheduled Weekly Backup (Crontab)
+To execute automatic database backups every **Friday at 23:00 WIB**, add the following job to your crontab (`crontab -e`):
+
+```crontab
+# Weekly PostgreSQL Docker auto-backup every Friday at 23:00 WIB
+0 23 * * 5 /path/to/foodprice-pipeline/backup_db.sh auto-backup >> /path/to/foodprice-pipeline/logs/backup.log 2>&1
+```
+
+### 🔄 Disaster Recovery / Restore Procedure
+To restore your database from a previous snapshot:
+```bash
+./backup_db.sh restore backups/foodprice_backup_YYYYMMDD_HHMMSS.sql.gz
+```
+The script will prompt for confirmation before safely purging existing objects and restoring the entire schema and data state into the PostgreSQL Docker container.
