@@ -9,8 +9,8 @@
 #   bash run_pipeline.sh
 #   bash run_pipeline.sh --run-date 20260420
 #
-# Crontab example (run daily at 17:00 WIB):
-#   0 17 * * * /absolute/path/to/run_pipeline.sh >> /absolute/path/to/logs/pipeline_cron.log 2>&1
+# Crontab example (run daily at 15:00 WIB):
+#   0 15 * * * /absolute/path/to/run_pipeline.sh >> /absolute/path/to/logs/pipeline_cron.log 2>&1
 # ==============================================================
 
 set -euo pipefail
