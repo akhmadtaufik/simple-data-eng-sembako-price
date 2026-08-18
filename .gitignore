@@ -3,11 +3,50 @@
 # ==============================================================
 
 # --------------------------------------------------------------
-# Secrets & Configuration (CRITICAL)
+# Secrets, Environment & Credentials (CRITICAL)
 # --------------------------------------------------------------
 .env
 *.env
 .env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.template
+
+# Private Keys, SSH & Certificates
+*.pem
+*.key
+*.pkcs12
+*.pfx
+*.p12
+*.crt
+*.cer
+*.der
+id_rsa
+id_rsa.pub
+id_dsa
+id_ed25519
+id_ecdsa
+*.id_rsa
+
+# Cloud Provider & Service Account Credentials
+*credential*.json
+*credentials*.json
+*secret*.json
+service-account*.json
+gcp-key*.json
+google-credentials*.json
+.aws/
+credentials.csv
+
+# API Tokens & Auth Secrets
+*token*.json
+*token*.txt
+token.pickle
+*.jwt
+.netrc
+.npmrc
+.pypirc
 
 # --------------------------------------------------------------
 # Python & Virtual Environments
@@ -45,11 +84,18 @@ luigi-state.pickle
 logs/
 
 # --------------------------------------------------------------
-# Docker & Database Volumes
+# Docker & Database Volumes & Backups
 # --------------------------------------------------------------
 pg_data/
 .docker/
 docker_pgdata/
+backups/
+*.sql.gz
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
 
 # --------------------------------------------------------------
 # OS & IDE Settings
